@@ -1,4 +1,4 @@
 filer-fs
 ========
 
-Filer node fs Provider
+Filer node fs provider.
