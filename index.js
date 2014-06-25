@@ -4,15 +4,6 @@ var path = require('path');
 var async = require('async');
 var mkdirp = require('mkdirp');
 
-function u8toArray(u8) {
-  var array = [];
-  var len = u8.length;
-  for(var i = 0; i < len; i++) {
-    array[i] = u8[i];
-  }
-  return array;
-}
-
 function FSContext(options) {
   this.readOnly = options.isReadOnly;
   this.keyPrefix = options.keyPrefix;
@@ -22,24 +13,23 @@ function prefixKey(prefix, key) {
   return path.join(prefix, key);
 }
 
-FSContext.prototype.put = function (key, value, callback) {console.log('put', key);
+FSContext.prototype.put = function (key, value, callback) {
   if(this.readOnly) {
     return callback("Error: Write operation on readOnly context.");
   }
   key = prefixKey(this.keyPrefix, key);
-  // We do extra work to make sure typed arrays survive
+  // We do extra work to make sure typed buffer survive
   // being stored on disk and still get the right prototype later.
-  if (Object.prototype.toString.call(value) === "[object Uint8Array]") {
+  if (Buffer.isBuffer(value)) {
     value = {
-      __isUint8Array: true,
-      __array: u8toArray(value)
+      __isBuffer: true,
+      __array: value.toJSON()
     };
   }
   value = JSON.stringify(value);
 
   fs.writeFile(key, value, function(err) {
     if(err) {
-console.log('put failed', err);
       callback("Error: unable to write to disk. Error was " + err);
       return;
     }
@@ -47,14 +37,13 @@ console.log('put failed', err);
   });
 };
 
-FSContext.prototype.delete = function (key, callback) {console.log('delete', key);
+FSContext.prototype.delete = function (key, callback) {
   if(this.readOnly) {
     return callback("Error: Write operation on readOnly context.");
   }
   key = prefixKey(this.keyPrefix, key);
   fs.unlink(key, function(err) {
     if(err) {
-console.log('delete failed', err);
       callback("Error: unable to delete key from disk. Error was " + err);
       return;
     }
@@ -62,7 +51,7 @@ console.log('delete failed', err);
   });
 };
 
-FSContext.prototype.clear = function (callback) {console.log('clear');
+FSContext.prototype.clear = function (callback) {
   if(this.readOnly) {
     return callback("Error: Write operation on readOnly context.");
   }
@@ -70,7 +59,6 @@ FSContext.prototype.clear = function (callback) {console.log('clear');
   function removeEntries(pathname, callback) {
     fs.readdir(pathname, function(error, entries) {
       if(error) {
-console.log('readdir failed', error);
         callback(error);
         return;
       }
@@ -80,31 +68,30 @@ console.log('readdir failed', error);
       });
 
       async.each(entries, function(filename, callback) {
-        console.error('unlink', filename);
         fs.unlink(filename, function(err) {
-          if(err) console.log('unlink', filename, err);
-          callback(err);
+          if(err) {
+            callback(err);
+            return;
+          }
         });
       },
       function(error) {
         if(error) {
-console.log('async each failed', error);
           callback(error);
           return;
         }
-        callback();
       });
+      callback(null);
     });
   }
 
   removeEntries(this.keyPrefix, callback);
 };
 
-FSContext.prototype.get = function (key, callback) {console.log('get', key);
+FSContext.prototype.get = function (key, callback) {
   key = prefixKey(this.keyPrefix, key);
   fs.readFile(key, 'utf8', function(err, data) {
     if(err && err.code !== 'ENOENT') {
-console.log('get failed', err);
       callback("Error: unable to get key from disk. Error was " + err);
       return;
     }
@@ -112,14 +99,14 @@ console.log('get failed', err);
     try {
       if(data) {
         data = JSON.parse(data);
-        // Deal with special-cased flattened typed arrays (see put() below)
-        if(data.__isUint8Array) {
-          data = new Uint8Array(data.__array);
+        // Deal with special-cased flattened typed buffer (see put() below)
+        if(data.__isBuffer) {
+          data = new Buffer(data.__array);
         }
       }
       callback(null, data);
     } catch(e) {
-      callback(e);
+      return callback(e);
     }
   });
 };
