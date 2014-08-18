@@ -75,11 +75,11 @@ describe("Filer.FileSystem.providers.FS", function() {
         }
         expect(firstAccess).to.be.true;
         var context = provider.getReadWriteContext();
-        context.put("key", data, function(error) {
+        context.putBuffer("key", data, function(error) {
           if(error) {
             throw error;
           }
-          context.get("key", function(error, result) {
+          context.getBuffer("key", function(error, result) {
             expect(error).not.to.exist;
             expect(result).to.exist;
             expect(result).to.eql(data);
@@ -97,7 +97,7 @@ describe("Filer.FileSystem.providers.FS", function() {
         }
         expect(firstAccess).to.be.true;
         var context = provider.getReadWriteContext();
-        context.put("key", "value", function(error) {
+        context.putObject("key", "value", function(error) {
           if (error) {
             throw error;
           }
@@ -105,7 +105,7 @@ describe("Filer.FileSystem.providers.FS", function() {
             if (error) {
               throw error;
             }
-            context.get("key", function(error, result) {
+            context.getObject("key", function(error, result) {
               expect(error).not.to.exist;
               expect(result).not.to.exist;
               done();
@@ -126,12 +126,12 @@ describe("Filer.FileSystem.providers.FS", function() {
         }
         expect(firstAccess).to.be.true;
         var context = provider.getReadWriteContext();
-        context.put("key1", data1, function(error) {
+        context.putBuffer("key1", data1, function(error) {
           if (error) {
             throw error;
           }
           expect(error).not.to.exist;
-          context.put("key2", data2, function(error) {
+          context.putBuffer("key2", data2, function(error) {
             if (error) {
               throw error;
             }
@@ -140,11 +140,11 @@ describe("Filer.FileSystem.providers.FS", function() {
               if (error) {
                 throw error;
               }
-              context.get("key1", function(error, result) {
+              context.getBuffer("key1", function(error, result) {
                expect(error).to.exist;
                 expect(result).not.to.exist;
 
-                context.get("key2", function(error, result) {
+                context.getBuffer("key2", function(error, result) {
                   expect(error).to.exist;
                   expect(result).not.to.exist;
                   done();
@@ -165,7 +165,7 @@ describe("Filer.FileSystem.providers.FS", function() {
         }
         expect(firstAccess).to.be.true;
         var context = provider.getReadOnlyContext();
-        context.put("key1", data1, function(error) {
+        context.putBuffer("key1", data1, function(error) {
           expect(error).to.exist;
           done();
         });
