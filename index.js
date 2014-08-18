@@ -54,8 +54,17 @@ FSContext.prototype.clear = function (callback) {
     return callback("Error: Write operation on readOnly context.");
   }
 
+  var dir = this.keyPrefix;
+
   // rm -fr <user/fs/dir/root>
-  rimraf(this.keyPrefix, callback);
+  rimraf(dir, function(err) {
+    if(err) {
+      return callback(err);
+    }
+
+    // Now create it again so we have an empty root for this user's fs
+    mkdirp(dir, callback);
+  });
 };
 
 function _get(keyPrefix, encoding, key, callback) {
@@ -108,7 +117,7 @@ FSProvider.prototype.open = function(callback) {
   var dir = path.join(this.root, this.keyPrefix);
 
   mkdirp(dir, function(err) {
-    if (err && err.code != 'EEXIST') {
+    if (err && err.code !== 'EEXIST') {
       return callback(err);
     }
 
